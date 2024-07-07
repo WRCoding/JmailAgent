@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.longjunwang.jmailagent.mapper.InvoiceMapper">
+
+    <resultMap type="com.longjunwang.jmailagent.entity.InvoiceInfo" id="resultmap">
+        <id property="id" column="id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="number" column="number"/>
+        <result property="date" column="date"/>
+        <result property="total" column="total"/>
+        <result property="buyer" column="buyer"/>
+        <result property="buyerTaxId" column="buyer_tax_id"/>
+        <result property="issuer" column="issuer"/>
+        <result property="reviewer" column="reviewer"/>
+        <result property="receiptor" column="receiptor"/>
+        <result property="name" column="name"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="isDelete" column="is_delete"/>
+    </resultMap>
+
+    <insert id="insertBySelective" parameterType="com.longjunwang.jmailagent.entity.InvoiceInfo" useGeneratedKeys="true" keyProperty="id">
+        insert into invoice_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="fileName != null">
+                file_name,
+            </if>
+            <if test="number != null">
+                number,
+            </if>
+            <if test="date != null">
+                date,
+            </if>
+            <if test="total != null">
+                total,
+            </if>
+            <if test="buyer != null">
+                buyer,
+            </if>
+            <if test="buyerTaxId != null">
+                buyer_tax_id,
+            </if>
+            <if test="issuer != null">
+                issuer,
+            </if>
+            <if test="reviewer != null">
+                reviewer,
+            </if>
+            <if test="receiptor != null">
+                receiptor,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            create_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=INTEGER},
+            </if>
+            <if test="fileName != null">
+                #{fileName,jdbcType=VARCHAR},
+            </if>
+            <if test="number != null">
+                #{number,jdbcType=VARCHAR},
+            </if>
+            <if test="date != null">
+                #{date,jdbcType=VARCHAR},
+            </if>
+            <if test="total != null">
+                #{total,jdbcType=VARCHAR},
+            </if>
+            <if test="buyer != null">
+                #{buyer,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerTaxId != null">
+                #{buyerTaxId,jdbcType=VARCHAR},
+            </if>
+            <if test="issuer != null">
+                #{issuer,jdbcType=VARCHAR},
+            </if>
+            <if test="reviewer != null">
+                #{reviewer,jdbcType=VARCHAR},
+            </if>
+            <if test="receiptor != null">
+                #{receiptor,jdbcType=VARCHAR},
+            </if>
+            <if test="name != null">
+                #{name,jdbcType=VARCHAR},
+            </if>
+            now()
+        </trim>
+    </insert>
+    <update id="softDelete">
+        update invoice_info set is_delete = 1, update_time = now() where number = #{id};
+    </update>
+    <delete id="hardDelete">
+        delete from invoice_info where number = #{id};
+    </delete>
+    <select id="selectByNumberId" resultMap="resultmap">
+        select * from invoice_info where number = #{id}
+    </select>
+    <select id="selectAll" resultMap="resultmap">
+        select * from invoice_info
+    </select>
+    <select id="selectByFileNames" resultMap="resultmap">
+        select * from invoice_info where is_delete = '0' and file_name in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        order by date desc
+    </select>
+
+</mapper>

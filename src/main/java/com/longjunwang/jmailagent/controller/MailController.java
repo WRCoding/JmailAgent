@@ -1,0 +1,21 @@
+package com.longjunwang.jmailagent.controller;
+
+import com.longjunwang.jmailagent.service.MailService;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@Slf4j
+public class MailController {
+
+    @Resource
+    private MailService mailService;
+
+
+    @GetMapping("/invoke")
+    public void invoke(){
+        mailService.invoke();
+    }
+}

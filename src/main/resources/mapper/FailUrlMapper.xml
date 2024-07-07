@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.longjunwang.jmailagent.mapper.FailUrlMapper">
+
+    <insert id="insert" parameterType="com.longjunwang.jmailagent.entity.FailUrl" useGeneratedKeys="true" keyProperty="id">
+        insert into fail_url(url, create_time) VALUES (#{url},now())
+    </insert>
+</mapper>
