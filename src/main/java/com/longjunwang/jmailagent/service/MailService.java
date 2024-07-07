@@ -86,7 +86,7 @@ public class MailService {
 
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
-//            cleanFolder(location);
+            cleanFolder(location);
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
@@ -112,14 +112,12 @@ public class MailService {
     }
 
     public void invoke(){
-        THREAD_POOL_EXECUTOR.execute(() -> {
-            try {
-                searchAndParseMail(CommonUtil.getSetting());
-                saveFailUrl();
-            } catch (Exception e) {
-                log.error("任务执行失败, e: {}", e.getMessage());
-            }
-        });
+        try {
+            searchAndParseMail(CommonUtil.getSetting());
+            saveFailUrl();
+        } catch (Exception e) {
+            log.error("任务执行失败, e: {}", e.getMessage());
+        }
     }
 
     private void saveFailUrl() {

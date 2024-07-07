@@ -13,9 +13,4 @@ public class MailController {
     @Resource
     private MailService mailService;
 
-
-    @GetMapping("/invoke")
-    public void invoke(){
-        mailService.invoke();
-    }
 }
