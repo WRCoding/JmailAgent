@@ -86,7 +86,7 @@ public class MailService {
 
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
-            cleanFolder(location);
+//            cleanFolder(location);
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }

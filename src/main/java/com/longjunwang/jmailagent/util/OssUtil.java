@@ -38,9 +38,9 @@ public class OssUtil {
             OssUtil.upload(file);
         }
     }
-    public static void upload(File file){
-
+    public static PutObjectResult upload(File file){
         OSS ossClient = getOssClient();
+        PutObjectResult result = null;
         try {
             // 创建PutObjectRequest对象。
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, file.getName(), file);
@@ -51,7 +51,7 @@ public class OssUtil {
             // putObjectRequest.setMetadata(metadata);
 
             // 上传文件。
-            PutObjectResult result = ossClient.putObject(putObjectRequest);
+            result = ossClient.putObject(putObjectRequest);
         } catch (OSSException oe) {
             System.out.println("Caught an OSSException, which means your request made it to OSS, "
                     + "but was rejected with an error response for some reason.");
@@ -68,6 +68,7 @@ public class OssUtil {
             if (ossClient != null) {
                 ossClient.shutdown();
             }
+            return result;
         }
     }
 

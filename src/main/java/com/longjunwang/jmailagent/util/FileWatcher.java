@@ -2,6 +2,7 @@ package com.longjunwang.jmailagent.util;
 
 import cn.hutool.core.io.watch.SimpleWatcher;
 import cn.hutool.extra.spring.SpringUtil;
+import com.aliyun.oss.model.PutObjectResult;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.InvoiceInfo;
 import com.longjunwang.jmailagent.service.InvoiceService;
@@ -36,8 +37,12 @@ public class FileWatcher extends SimpleWatcher {
         if (filePath.endsWith(".pdf")){
             InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
             if (Objects.nonNull(invoiceInfo)){
-                invoiceService.insert(invoiceInfo);
-                OssUtil.upload(file);
+                PutObjectResult result = OssUtil.upload(file);
+                if (Objects.nonNull(result)) {
+                    invoiceService.insert(invoiceInfo);
+                }else{
+                    log.info("PutObjectResult null: {}", filePath);
+                }
             }else{
                 log.info("invoiceInfo null: {}", filePath);
             }

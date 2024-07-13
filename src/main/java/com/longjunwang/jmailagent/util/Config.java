@@ -5,11 +5,13 @@ import com.aliyun.oss.common.auth.DefaultCredentialProvider;
 import com.tencentcloudapi.common.Credential;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 @Getter
+@Slf4j
 public class Config {
     @Value("${JmailAgent.oss.keyId}")
     private String ossKeyId;
@@ -36,6 +38,7 @@ public class Config {
 
     @PostConstruct
     public void init(){
+        log.info("config 初始化....");
         credentialsProvider = new DefaultCredentialProvider(ossKeyId, ossSecret);
         credential = new Credential(ocrKeyId, ocrSecret);
     }

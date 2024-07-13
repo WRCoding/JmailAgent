@@ -57,7 +57,7 @@
             <if test="name != null">
                 name,
             </if>
-            create_time
+            create_time,update_time,is_delete
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -93,7 +93,7 @@
             <if test="name != null">
                 #{name,jdbcType=VARCHAR},
             </if>
-            now()
+            now(),now(),'0'
         </trim>
     </insert>
     <update id="softDelete">
