@@ -7,9 +7,7 @@ import com.longjunwang.jmailagent.entity.Setting;
 import com.longjunwang.jmailagent.mapper.FailUrlMapper;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.CommonUtil;
-import com.longjunwang.jmailagent.util.OssUtil;
 import com.longjunwang.jmailagent.util.Result;
-import io.netty.util.concurrent.SingleThreadEventExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -20,19 +18,17 @@ import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Slf4j
@@ -63,15 +59,22 @@ public class MailService {
 
     private final List<String> urls = new ArrayList<>();
 
+    private volatile boolean isInvoking = false;
+
+    private final ReentrantLock lock = new ReentrantLock();
+
     /**
      * 用单线程池控制串行跑
      */
-    private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(1,1,0, TimeUnit.MICROSECONDS, new LinkedBlockingDeque<>(3));
-
+    private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MICROSECONDS, new LinkedBlockingDeque<>(3));
 
 
     @PostConstruct
-    public void init(){
+    public void init() {
+        connectFolder();
+    }
+
+    private void connectFolder() {
         try {
             Properties properties = new Properties();
             properties.setProperty("mail.store.protocol", "imap");
@@ -82,15 +85,40 @@ public class MailService {
                 }
             });
             store = session.getStore("imap");
-            store.connect("imap.qq.com",993, mailUser, mailPassword);
-
+            store.connect("imap.qq.com", 993, mailUser, mailPassword);
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
-//            cleanFolder(location);
+            cleanFolder(location);
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * 检查链接和重新链接
+     */
+    public void checkConnectAndReconnect(){
+        if (Objects.nonNull(store) && store.isConnected()){
+            log.info("链接正常,无须重连");
+            return;
+        }
+        log.info("重新链接IMAP....");
+        reconnectFolder();
+    }
+
+    public void reconnectFolder() {
+        if (!isInvoking) {
+            synchronized (this){
+                if (!isInvoking){
+                    shutdownFolder();
+                    connectFolder();
+                }
+            }
+        } else {
+            log.error("正在操作邮箱,禁止重连");
+        }
+    }
+
     public void cleanFolder(String path) {
         File folder = new File(path);
         if (folder.exists()) {
@@ -106,17 +134,33 @@ public class MailService {
                     }
                 }
             }
-        }else{
+        } else {
             folder.mkdirs();
         }
     }
 
-    public void invoke(){
-        try {
-            searchAndParseMail(CommonUtil.getSetting());
-            saveFailUrl();
-        } catch (Exception e) {
-            log.error("任务执行失败, e: {}", e.getMessage());
+    public void invoke() {
+        if (!isInvoking) {
+            lock.lock();
+            try {
+                if (!isInvoking) {
+                    try {
+                        isInvoking = true;
+                        log.info("正在执行任务.....");
+                        checkConnectAndReconnect();
+                        searchAndParseMail();
+                        saveFailUrl();
+                    } catch (Exception e) {
+                        log.error("任务执行失败, e: {}", e.getMessage());
+                    } finally {
+                        isInvoking = false;
+                    }
+                }
+            } finally {
+                lock.unlock();
+            }
+        }else{
+            log.info("任务正在执行,请勿重复执行");
         }
     }
 
@@ -126,7 +170,8 @@ public class MailService {
         }
     }
 
-    public void searchAndParseMail(Setting setting) throws MessagingException, InterruptedException {
+    public void searchAndParseMail() throws MessagingException {
+        Setting setting = CommonUtil.getSetting();
         log.info("执行开始: setting: {}", setting);
         long start = System.currentTimeMillis();
         String since = setting.getSince();
@@ -137,28 +182,28 @@ public class MailService {
         log.info("message size: {}", messages.length);
         int count = 0;
         for (Message message : messages) {
-            if (message.getMessageNumber() <= lastEmailId){
+            if (message.getMessageNumber() <= lastEmailId) {
                 continue;
             }
             count++;
             lastEmailId = Math.max(lastEmailId, message.getMessageNumber());
             metaData(message);
             BodyPart attachment = getAttachment(message);
-            if (Objects.nonNull(attachment)){
+            if (Objects.nonNull(attachment)) {
                 parseAttachment(attachment);
-            }else{
+            } else {
                 Result result = aiService.aiParseHtml(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 urls.add(result.getResult());
             }
         }
-        if (count > 0){
+        if (count > 0) {
             log.info("开始处理外部, url size: {}", urls.size());
             browserService.parse_url(urls);
             setting.setLastEmailId(lastEmailId);
             CommonUtil.writeBack(setting);
         }
 //        cleanFolder(location);
-        log.info("执行完成, 处理数: {}, 耗时: {}", count, (System.currentTimeMillis() - start)/1000);
+        log.info("执行完成, 处理数: {}, 耗时: {}", count, (System.currentTimeMillis() - start) / 1000);
 
     }
 
@@ -186,7 +231,7 @@ public class MailService {
     }
 
     private String extractHtmlContent(Part part) {
-        if (Objects.isNull(part)){
+        if (Objects.isNull(part)) {
             return null;
         }
         try {
@@ -248,7 +293,7 @@ public class MailService {
 
     private SearchTerm initSearchTerm(String since) {
         Date date = CommonUtil.getDateBefore30Days();
-        if (StringUtils.hasText(since)){
+        if (StringUtils.hasText(since)) {
             date = CommonUtil.parse2Date(since);
         }
         return new ReceivedDateTerm(ComparisonTerm.GE, date);
@@ -276,10 +321,18 @@ public class MailService {
     }
 
     @PreDestroy
-    public void destroy(){
+    public void destroy() {
+        shutdownFolder();
+    }
+
+    private void shutdownFolder() {
         try {
-            inbox.close();
-            store.close();
+            if (Objects.nonNull(inbox)) {
+                inbox.close();
+            }
+            if (Objects.nonNull(store)) {
+                store.close();
+            }
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
