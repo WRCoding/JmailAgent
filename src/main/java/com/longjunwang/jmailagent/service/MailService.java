@@ -1,5 +1,6 @@
 package com.longjunwang.jmailagent.service;
 
+import ch.qos.logback.core.util.TimeUtil;
 import com.longjunwang.jmailagent.ai.AiService;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.FailUrl;
@@ -170,7 +171,7 @@ public class MailService {
         }
     }
 
-    public void searchAndParseMail() throws MessagingException {
+    public void searchAndParseMail() throws MessagingException, InterruptedException {
         Setting setting = CommonUtil.getSetting();
         log.info("执行开始: setting: {}", setting);
         long start = System.currentTimeMillis();
@@ -192,16 +193,18 @@ public class MailService {
             if (Objects.nonNull(attachment)) {
                 parseAttachment(attachment);
             } else {
+                TimeUnit.SECONDS.sleep(1);
                 Result result = aiService.aiParseHtml(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 urls.add(result.getResult());
+                log.info("url: {}", result.getResult());
             }
         }
-        if (count > 0) {
-            log.info("开始处理外部, url size: {}", urls.size());
-            browserService.parse_url(urls);
-            setting.setLastEmailId(lastEmailId);
-            CommonUtil.writeBack(setting);
-        }
+//        if (count > 0) {
+//            log.info("开始处理外部, url size: {}", urls.size());
+//            browserService.parse_url(urls);
+//            setting.setLastEmailId(lastEmailId);
+//            CommonUtil.writeBack(setting);
+//        }
 //        cleanFolder(location);
         log.info("执行完成, 处理数: {}, 耗时: {}", count, (System.currentTimeMillis() - start) / 1000);
 
