@@ -1,8 +1,6 @@
 package com.longjunwang.jmailagent.ai;
 
 import cn.hutool.extra.spring.SpringUtil;
-import com.longjunwang.jmailagent.tongyi.TongYiApi;
-import com.longjunwang.jmailagent.tongyi.TongYiChatModel;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.Config;
 import com.longjunwang.jmailagent.util.Result;
@@ -25,15 +23,12 @@ public class AiService {
     private OpenAiChatModel chatModel;
     private ChatClient chatClient;
 
-    private TongYiChatModel tongYiChatModel;
 
     @PostConstruct
     public void init(){
         Config config = SpringUtil.getBean(Config.class);
-//        chatModel = new OpenAiChatModel(new OpenAiApi(config.getOpenaiBaseUrl(), config.getOpenaiKey()));
-        tongYiChatModel = new TongYiChatModel(new TongYiApi("https://dashscope.aliyuncs.com/compatible-mode","sk-810ca6e92abd467396f18b84e83067d4"));
-//        chatClient = ChatClient.create(chatModel);
-        chatClient = ChatClient.create(tongYiChatModel);
+        chatModel = new OpenAiChatModel(new OpenAiApi(config.getOpenaiBaseUrl(), config.getOpenaiKey()));
+        chatClient = ChatClient.create(chatModel);
     }
 
     public Result aiParseHtml(String content, String prompt){
@@ -51,7 +46,7 @@ public class AiService {
     private Result call(SystemMessage systemMessage, UserMessage userMessage) throws InterruptedException {
         TimeUnit.SECONDS.sleep(1);
         return chatClient.prompt()
-//                .options(OpenAiChatOptions.builder().withModel(OpenAiApi.ChatModel.GPT_4_O.getValue()).build())
+                .options(OpenAiChatOptions.builder().withModel(OpenAiApi.ChatModel.GPT_3_5_TURBO.getValue()).build())
                 .messages(systemMessage, userMessage)
                 .call()
                 .entity(Result.class);
