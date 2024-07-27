@@ -1,7 +1,7 @@
 package com.longjunwang.jmailagent.ai;
 
-import com.longjunwang.jmailagent.tongyi.TongYiApi;
-import com.longjunwang.jmailagent.tongyi.TongYiChatModel;
+import com.longjunwang.jmailagent.ai.tongyi.TongYiApi;
+import com.longjunwang.jmailagent.ai.tongyi.TongYiChatModel;
 import com.longjunwang.jmailagent.util.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

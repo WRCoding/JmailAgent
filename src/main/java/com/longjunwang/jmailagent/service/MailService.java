@@ -1,6 +1,5 @@
 package com.longjunwang.jmailagent.service;
 
-import com.longjunwang.jmailagent.ai.AiService;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.FailUrl;
 import com.longjunwang.jmailagent.entity.Setting;
