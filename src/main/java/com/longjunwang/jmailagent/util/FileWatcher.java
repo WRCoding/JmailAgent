@@ -35,17 +35,17 @@ public class FileWatcher extends SimpleWatcher {
         File file = new File(filePath);
         log.info("fileName: {}, size: {}", file.getName(), file.length());
         if (filePath.endsWith(".pdf")){
-//            InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
-//            if (Objects.nonNull(invoiceInfo)){
-//                PutObjectResult result = OssUtil.upload(file);
-//                if (Objects.nonNull(result)) {
-//                    invoiceService.insert(invoiceInfo);
-//                }else{
-//                    log.info("PutObjectResult null: {}", filePath);
-//                }
-//            }else{
-//                log.info("invoiceInfo null: {}", filePath);
-//            }
+            InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
+            if (Objects.nonNull(invoiceInfo)){
+                PutObjectResult result = OssUtil.upload(file);
+                if (Objects.nonNull(result)) {
+                    invoiceService.insert(invoiceInfo);
+                }else{
+                    log.info("PutObjectResult null: {}", filePath);
+                }
+            }else{
+                log.info("invoiceInfo null: {}", filePath);
+            }
             log.info("count: {}, 创建：{}-> {}", count.incrementAndGet(), currentPath, obj);
         }
 
