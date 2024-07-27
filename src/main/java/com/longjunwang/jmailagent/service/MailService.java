@@ -1,6 +1,5 @@
 package com.longjunwang.jmailagent.service;
 
-import ch.qos.logback.core.util.TimeUtil;
 import com.longjunwang.jmailagent.ai.AiService;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.FailUrl;
@@ -9,7 +8,6 @@ import com.longjunwang.jmailagent.mapper.FailUrlMapper;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.CommonUtil;
 import com.longjunwang.jmailagent.util.Result;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import jakarta.mail.*;
@@ -70,11 +68,6 @@ public class MailService {
     private static final ThreadPoolExecutor THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MICROSECONDS, new LinkedBlockingDeque<>(3));
 
 
-    @PostConstruct
-    public void init() {
-        connectFolder();
-    }
-
     private void connectFolder() {
         try {
             Properties properties = new Properties();
@@ -98,26 +91,13 @@ public class MailService {
     /**
      * 检查链接和重新链接
      */
-    public void checkConnectAndReconnect(){
+    public void checkConnectAndConnect(){
         if (Objects.nonNull(store) && store.isConnected()){
             log.info("链接正常,无须重连");
             return;
         }
-        log.info("重新链接IMAP....");
-        reconnectFolder();
-    }
-
-    public void reconnectFolder() {
-        if (!isInvoking) {
-            synchronized (this){
-                if (!isInvoking){
-                    shutdownFolder();
-                    connectFolder();
-                }
-            }
-        } else {
-            log.error("正在操作邮箱,禁止重连");
-        }
+        log.info("链接IMAP....");
+        connectFolder();
     }
 
     public void cleanFolder(String path) {
@@ -148,7 +128,7 @@ public class MailService {
                     try {
                         isInvoking = true;
                         log.info("正在执行任务.....");
-                        checkConnectAndReconnect();
+                        checkConnectAndConnect();
                         searchAndParseMail();
                         saveFailUrl();
                     } catch (Exception e) {
@@ -171,7 +151,7 @@ public class MailService {
         }
     }
 
-    public void searchAndParseMail() throws MessagingException, InterruptedException {
+    public void searchAndParseMail() throws MessagingException {
         Setting setting = CommonUtil.getSetting();
         log.info("执行开始: setting: {}", setting);
         long start = System.currentTimeMillis();
@@ -193,19 +173,18 @@ public class MailService {
             if (Objects.nonNull(attachment)) {
                 parseAttachment(attachment);
             } else {
-                TimeUnit.SECONDS.sleep(1);
                 Result result = aiService.aiParseHtml(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 urls.add(result.getResult());
                 log.info("url: {}", result.getResult());
             }
         }
-//        if (count > 0) {
-//            log.info("开始处理外部, url size: {}", urls.size());
-//            browserService.parse_url(urls);
-//            setting.setLastEmailId(lastEmailId);
-//            CommonUtil.writeBack(setting);
-//        }
-//        cleanFolder(location);
+        if (count > 0) {
+            log.info("开始处理外部, url size: {}", urls.size());
+            browserService.parse_url(urls);
+            setting.setLastEmailId(lastEmailId);
+            CommonUtil.writeBack(setting);
+        }
+        cleanFolder(location);
         log.info("执行完成, 处理数: {}, 耗时: {}", count, (System.currentTimeMillis() - start) / 1000);
 
     }
@@ -216,21 +195,6 @@ public class MailService {
         String subject = message.getSubject();
         InternetAddress address = (InternetAddress) message.getFrom()[message.getFrom().length - 1];
         log.info("MailId: {}, From: {}, Subject: {}, receiveDate: {}", message.getMessageNumber(), address.getAddress(), subject, receiveDate);
-    }
-
-    public void parseHtml(Message message) {
-        try {
-            String fileName = message.getSubject() + ".html";
-            String htmlContent = extractHtmlContent(message);
-            if (htmlContent != null) {
-                File file = new File(location + File.separator + fileName);
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-                    writer.write(htmlContent);
-                }
-            }
-        } catch (Exception e) {
-            log.error("获取HTML异常: e: {}", e.getMessage());
-        }
     }
 
     private String extractHtmlContent(Part part) {
