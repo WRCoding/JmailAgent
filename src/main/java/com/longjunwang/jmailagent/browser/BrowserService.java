@@ -1,7 +1,7 @@
 package com.longjunwang.jmailagent.browser;
 
 import cn.hutool.core.io.watch.WatchMonitor;
-import com.longjunwang.jmailagent.ai.AiService;
+import com.longjunwang.jmailagent.service.AiService;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.FileWatcher;
 import com.longjunwang.jmailagent.util.Result;
@@ -23,7 +23,6 @@ import org.springframework.util.StringUtils;
 import java.io.File;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service()
@@ -74,7 +73,7 @@ public class BrowserService {
                 chromeDriver.switchTo().window(handle);
                 driverWait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
                 String htmlContent = chromeDriver.getPageSource();
-                Result result = aiService.aiParseHtml(htmlContent, CommonPrompt.PDF_PROMPT);
+                Result result = aiService.call(htmlContent, CommonPrompt.PDF_PROMPT);
                 log.info("url: {}, parse result: {}", url, result);
                 if (StringUtils.hasText(result.getResult())) {
                     try {

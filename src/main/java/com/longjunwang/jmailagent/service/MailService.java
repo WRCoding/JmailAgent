@@ -1,7 +1,5 @@
 package com.longjunwang.jmailagent.service;
 
-import ch.qos.logback.core.util.TimeUtil;
-import com.longjunwang.jmailagent.ai.AiService;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.FailUrl;
 import com.longjunwang.jmailagent.entity.Setting;
@@ -194,7 +192,7 @@ public class MailService {
                 parseAttachment(attachment);
             } else {
                 TimeUnit.SECONDS.sleep(1);
-                Result result = aiService.aiParseHtml(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
+                Result result = aiService.call(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 urls.add(result.getResult());
                 log.info("url: {}", result.getResult());
             }
