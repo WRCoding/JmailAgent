@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class OssUtil {
-
-
-
-    private static String endpoint = "https://oss-cn-shenzhen.aliyuncs.com";
     private static String bucketName = "jmail";
     public static void uploadFolder(String folder){
         File file = new File(folder);
@@ -74,8 +70,7 @@ public class OssUtil {
 
     private static OSS getOssClient() {
         Config config = SpringUtil.getBean(Config.class);
-        OSS ossClient = new OSSClientBuilder().build(endpoint, config.getCredentialsProvider());
-        return ossClient;
+        return new OSSClientBuilder().build(config.getEndPoint(), config.getCredentialsProvider());
     }
 
     public static String generateTempUrl(String objectName){

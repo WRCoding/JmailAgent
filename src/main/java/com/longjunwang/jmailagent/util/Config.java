@@ -28,6 +28,9 @@ public class Config {
     @Value("${spring.ai.openai.api-key}")
     private String openaiKey;
 
+    @Value("${JmailAgent.oss.endpoint}")
+    private String endPoint;
+
     @Value("${spring.ai.openai.base-url}")
     private String openaiBaseUrl;
 
