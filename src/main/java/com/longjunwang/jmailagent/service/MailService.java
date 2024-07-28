@@ -138,6 +138,7 @@ public class MailService {
                     }
                 }
             } finally {
+                shutdownFolder();
                 lock.unlock();
             }
         }else{
@@ -168,9 +169,10 @@ public class MailService {
             }
             count++;
             lastEmailId = Math.max(lastEmailId, message.getMessageNumber());
-            metaData(message);
             BodyPart attachment = getAttachment(message);
+            metaData(message);
             if (Objects.nonNull(attachment)) {
+                log.info("attachment size: {}", attachment.getSize());
                 parseAttachment(attachment);
             } else {
                 Result result = aiService.aiParseHtml(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
@@ -295,9 +297,11 @@ public class MailService {
     private void shutdownFolder() {
         try {
             if (Objects.nonNull(inbox)) {
+                log.info("关闭inbox...");
                 inbox.close();
             }
             if (Objects.nonNull(store)) {
+                log.info("关闭store...");
                 store.close();
             }
         } catch (MessagingException e) {

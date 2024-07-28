@@ -33,7 +33,7 @@ public class FileWatcher extends SimpleWatcher {
         }
         String filePath = currentPath.toString() + File.separator + obj;
         File file = new File(filePath);
-        log.info("fileName: {}, size: {}", file.getName(), file.length());
+        log.info("file exist: {}, fileName: {}, size: {}",file.exists(), file.getName(), file.length());
         if (filePath.endsWith(".pdf")){
             InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
             if (Objects.nonNull(invoiceInfo)){
