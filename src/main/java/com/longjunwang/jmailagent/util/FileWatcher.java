@@ -33,21 +33,40 @@ public class FileWatcher extends SimpleWatcher {
         }
         String filePath = currentPath.toString() + File.separator + obj;
         File file = new File(filePath);
-        log.info("file exist: {}, fileName: {}, size: {}",file.exists(), file.getName(), file.length());
-        if (filePath.endsWith(".pdf")){
-            InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
-            if (Objects.nonNull(invoiceInfo)){
-                PutObjectResult result = OssUtil.upload(file);
-                if (Objects.nonNull(result)) {
-                    invoiceService.insert(invoiceInfo);
+        if (checkFileExist(file)){
+            log.info("file exist: {}, fileName: {}, size: {}",file.exists(), file.getName(), file.length());
+            if (filePath.endsWith(".pdf")){
+                InvoiceInfo invoiceInfo = TencentUtil.ocr_invoice(file);
+                if (Objects.nonNull(invoiceInfo)){
+                    PutObjectResult result = OssUtil.upload(file);
+                    if (Objects.nonNull(result)) {
+                        invoiceService.insert(invoiceInfo);
+                    }else{
+                        log.info("PutObjectResult null: {}", filePath);
+                    }
                 }else{
-                    log.info("PutObjectResult null: {}", filePath);
+                    log.info("invoiceInfo null: {}", filePath);
                 }
-            }else{
-                log.info("invoiceInfo null: {}", filePath);
+                log.info("count: {}, 创建：{}-> {}", count.incrementAndGet(), currentPath, obj);
             }
-            log.info("count: {}, 创建：{}-> {}", count.incrementAndGet(), currentPath, obj);
         }
+    }
 
+    /**
+     * 检查文件是否存在,循环60次,每次休眠一秒,存在直接返回
+     * @param file
+     * @return
+     */
+    private boolean checkFileExist(File file) {
+        for (int i = 0; i < 60; i++) {
+            if (file.exists()) {
+                return true;
+            }
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException ignore) {
+            }
+        }
+        return false;
     }
 }

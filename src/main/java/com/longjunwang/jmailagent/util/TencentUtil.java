@@ -39,7 +39,7 @@ public class TencentUtil {
             RecognizeGeneralInvoiceResponse resp = client.RecognizeGeneralInvoice(req);
             return extractData(resp,file);
         } catch (Exception e) {
-            log.info("ocr_invoice path: {} error: {}", file.getPath(), e.getMessage());
+            log.error("ocr_invoice path: {} error: {}", file.getPath(), e.getMessage());
             return null;
         }
     }
