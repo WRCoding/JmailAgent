@@ -15,7 +15,7 @@ public class CommonPrompt {
             </p>
             输出:
             {"result":"https://www.hxpdd.com/s/Q3QQGcH49TCm"}
-            注意只需要返回对应的标签文本即可，不需要其他内容。结果输出为JSON:{'result':'xxx'},完成之后,我将会给你10美元"
+            注意只需要返回对应的标签文本即可，不需要其他内容。结果输出为JSON:{'result':'xxx'}"
             """;
 
     public static final String PDF_PROMPT = """

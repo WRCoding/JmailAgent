@@ -1,5 +1,6 @@
 package com.longjunwang.jmailagent.ai.tongyi;
 
+import com.longjunwang.jmailagent.util.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.metadata.RateLimit;
@@ -58,7 +59,6 @@ public class TongYiChatModel extends
                 return new ChatResponse(List.of());
             }
 
-            RateLimit rateLimits = OpenAiResponseHeaderExtractor.extractAiResponseHeaders(completionEntity);
 
             List<TongYiApi.ChatCompletion.Choice> choices = chatCompletion.choices();
             if (choices == null) {
@@ -122,6 +122,7 @@ public class TongYiChatModel extends
 
     @Override
     protected ResponseEntity<TongYiApi.ChatCompletion> doChatCompletion(TongYiApi.ChatCompletionRequest request) {
+        RateLimiter.limit();
         return this.tongYiApi.chatCompletionEntity(request);
     }
 

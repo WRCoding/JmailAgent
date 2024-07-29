@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 
 public class OssUtil {
     private static String bucketName = "jmail";
+
+    private static String internalUrl = "https://oss-cn-shenzhen-internal.aliyuncs.com";
+    private static String externalUrl = "https://oss-cn-shenzhen.aliyuncs.com";
     public static void uploadFolder(String folder){
         File file = new File(folder);
         if (file.isDirectory()) {
@@ -77,7 +80,7 @@ public class OssUtil {
         OSS ossClient = getOssClient();
         String tempUrl = null;
         try {
-            URL signedUrl = null;
+            URL signedUrl;
             // 指定生成的签名URL过期时间，单位为毫秒。本示例以设置过期时间为1小时为例。
             Date expiration = new Date(new Date().getTime() + 3600 * 1000L);
 
@@ -88,7 +91,7 @@ public class OssUtil {
 
             // 通过HTTP GET请求生成签名URL。
             signedUrl = ossClient.generatePresignedUrl(request);
-            tempUrl = signedUrl.toString();
+            tempUrl = transferUrl(signedUrl);
             // 打印签名URL。
             System.out.println("signed url for getObject: " + tempUrl);
         } catch (OSSException oe) {
@@ -105,6 +108,11 @@ public class OssUtil {
             System.out.println("Error Message:" + ce.getMessage());
         }
         return tempUrl;
+    }
+
+    private static String transferUrl(URL signedUrl) {
+        String urlString = signedUrl.toString();
+        return urlString.replace(internalUrl, externalUrl);
     }
 
     public static List<String> listObject(){

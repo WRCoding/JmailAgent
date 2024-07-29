@@ -26,13 +26,9 @@ public class FileWatcher extends SimpleWatcher {
         if (Objects.isNull(obj)){
             return;
         }
-        //避免文件创建了,但还没有完全写入
-        try {
-            TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException ignore) {
-        }
         String filePath = currentPath.toString() + File.separator + obj;
         File file = new File(filePath);
+        log.info("file exist: {}, fileName: {}, size: {}",file.exists(), file.getName(), file.length());
         if (checkFileExist(file)){
             log.info("file exist: {}, fileName: {}, size: {}",file.exists(), file.getName(), file.length());
             if (filePath.endsWith(".pdf")){

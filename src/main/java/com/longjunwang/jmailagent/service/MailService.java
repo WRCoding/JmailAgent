@@ -175,8 +175,10 @@ public class MailService {
                 parseAttachment(attachment);
             } else {
                 Result result = aiService.call(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
-                urls.add(result.getResult());
-                log.info("url: {}", result.getResult());
+                if (Objects.nonNull(result)){
+                    urls.add(result.getResult());
+                    log.info("url: {}", result.getResult());
+                }
             }
         }
         if (count > 0) {
