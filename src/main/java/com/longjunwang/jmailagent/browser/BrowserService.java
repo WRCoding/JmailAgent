@@ -16,6 +16,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import org.springframework.util.StringUtils;
 import java.io.File;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service()
@@ -31,15 +33,23 @@ import java.util.*;
 @Data
 public class BrowserService {
 
-    @Resource
     private AiService aiService;
+    private AttachFileWatcher attachFileWatcher;
 
     @Value("${JmailAgent.attachment.location}")
     private String location;
 
-    private ChromeDriver chromeDriver;
+    @Autowired
+    public BrowserService(AiService aiService, AttachFileWatcher attachFileWatcher) {
+        this.aiService = aiService;
+        this.attachFileWatcher = attachFileWatcher;
+    }
+
+    private static ChromeDriver chromeDriver;
     private WebDriverWait driverWait;
     private String originHandle;
+//    private static final ScheduledExecutorService POOL_EXECUTOR = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledThreadPoolExecutor POOL_EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
     public static List<String> filePaths = new ArrayList<>();
 
@@ -47,7 +57,7 @@ public class BrowserService {
 
     private void initChrome() {
         if (Objects.nonNull(chromeDriver)){
-            chromeDriver.close();
+            chromeDriver.quit();
         }
         ChromeOptions options = new ChromeOptions();
         Map<String, Object> prefs = new HashMap<>();
@@ -59,8 +69,8 @@ public class BrowserService {
         options.addArguments("--no-sandbox");
         chromeDriver = new ChromeDriver(options);
         driverWait = new WebDriverWait(chromeDriver, Duration.ofSeconds(10));
-        WatchMonitor watchMonitor = WatchMonitor.create(new File(location), WatchMonitor.ENTRY_CREATE);
-        watchMonitor.setWatcher(SpringUtil.getBean(AttachFileWatcher.class));
+        WatchMonitor watchMonitor = WatchMonitor.create(new File(location), WatchMonitor.ENTRY_CREATE, WatchMonitor.ENTRY_MODIFY);
+        watchMonitor.setWatcher(attachFileWatcher);
         watchMonitor.start();
         originHandle = chromeDriver.getWindowHandle();
         log.info("origin handle: {}", originHandle);
@@ -98,8 +108,22 @@ public class BrowserService {
             }
         } catch (Exception e) {
             log.error("parse_url error e: {}", e.getMessage());
+        }finally {
+            prepareQuit();
         }
+    }
 
+    private void prepareQuit() {
+        POOL_EXECUTOR.scheduleAtFixedRate(() -> {
+            long current = System.currentTimeMillis();
+            log.info("current: {}, modify: {}",current, attachFileWatcher.getModifyTime());
+            if (current - attachFileWatcher.getModifyTime() > 12_000_0L){
+                log.info("超过两分钟没有变化,执行quit");
+                quit();
+                return;
+            }
+            log.info("两分钟内发生变化,不执行处理");
+        }, 360, 60, TimeUnit.SECONDS);
     }
 
     public Map<String, String> openWindows(List<String> urls) {
@@ -131,5 +155,13 @@ public class BrowserService {
         }
 
         return splitList;
+    }
+
+    public static void quit(){
+        if (Objects.nonNull(chromeDriver)){
+            chromeDriver.close();
+            chromeDriver.quit();
+            POOL_EXECUTOR.shutdown();
+        }
     }
 }

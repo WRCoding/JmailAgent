@@ -2,6 +2,7 @@ package com.longjunwang.jmailagent.util;
 
 import cn.hutool.core.io.watch.SimpleWatcher;
 import com.longjunwang.jmailagent.entity.AttachEvent;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,7 +21,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AttachFileWatcher extends SimpleWatcher implements ApplicationEventPublisherAware {
 
     private ApplicationEventPublisher publisher;
-    private static final AtomicInteger count = new AtomicInteger(0);
+    private final AtomicInteger count = new AtomicInteger(0);
+    @Getter
+    private volatile long modifyTime = Long.MAX_VALUE;
+
     @Override
     public void onCreate(WatchEvent<?> event, Path currentPath) {
         Object obj = event.context();
@@ -36,6 +40,12 @@ public class AttachFileWatcher extends SimpleWatcher implements ApplicationEvent
                 log.info("count: {}, 创建：{}-> {}", count.incrementAndGet(), currentPath, obj);
             }
         }
+    }
+
+    @Override
+    public void onModify(WatchEvent<?> event, Path currentPath) {
+        modifyTime = System.currentTimeMillis();
+        log.info("modify: {}", modifyTime);
     }
 
     private boolean waitForDownloadToComplete(File file) {
