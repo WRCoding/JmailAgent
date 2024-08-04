@@ -1,9 +1,10 @@
 package com.longjunwang.jmailagent.browser;
 
 import cn.hutool.core.io.watch.WatchMonitor;
+import cn.hutool.extra.spring.SpringUtil;
 import com.longjunwang.jmailagent.service.AiService;
 import com.longjunwang.jmailagent.util.CommonPrompt;
-import com.longjunwang.jmailagent.util.FileWatcher;
+import com.longjunwang.jmailagent.util.AttachFileWatcher;
 import com.longjunwang.jmailagent.util.Result;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -44,8 +45,10 @@ public class BrowserService {
 
     public static List<String> failedUrl = new ArrayList<>();
 
-    @PostConstruct
-    public void init() {
+    private void initChrome() {
+        if (Objects.nonNull(chromeDriver)){
+            chromeDriver.close();
+        }
         ChromeOptions options = new ChromeOptions();
         Map<String, Object> prefs = new HashMap<>();
         prefs.put("download.default_directory", location); // 替换为你的下载路径
@@ -57,40 +60,44 @@ public class BrowserService {
         chromeDriver = new ChromeDriver(options);
         driverWait = new WebDriverWait(chromeDriver, Duration.ofSeconds(10));
         WatchMonitor watchMonitor = WatchMonitor.create(new File(location), WatchMonitor.ENTRY_CREATE);
-        watchMonitor.setWatcher(new FileWatcher());
+        watchMonitor.setWatcher(SpringUtil.getBean(AttachFileWatcher.class));
         watchMonitor.start();
         originHandle = chromeDriver.getWindowHandle();
         log.info("origin handle: {}", originHandle);
     }
 
     public void parse_url(List<String> urls) {
+        initChrome();
         List<List<String>> splitList = splitList(urls,4);
-        for (List<String> urlList : splitList) {
-            log.info("urlList: {}", urlList);
-            for (Map.Entry<String, String> entry : openWindows(urlList).entrySet()) {
-                String url = entry.getKey();
-                String handle = entry.getValue();
-                chromeDriver.switchTo().window(handle);
-                driverWait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
-                String htmlContent = chromeDriver.getPageSource();
-                Result result = aiService.call(htmlContent, CommonPrompt.PDF_PROMPT);
-                log.info("url: {}, parse result: {}", url, result);
-                if (StringUtils.hasText(result.getResult())) {
-                    try {
-                        String text = result.getResult();
-                        String xpathExpression = String.format("//*[contains(text(), '%s')]", text);
-                        WebElement btn = driverWait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpathExpression)));
-                        btn.click();
-                    } catch (Exception e) {
-                        log.info("click url: {} error: {}", url, e.getMessage());
+        try {
+            for (List<String> urlList : splitList) {
+                log.info("urlList: {}", urlList);
+                for (Map.Entry<String, String> entry : openWindows(urlList).entrySet()) {
+                    String url = entry.getKey();
+                    String handle = entry.getValue();
+                    chromeDriver.switchTo().window(handle);
+                    driverWait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+                    String htmlContent = chromeDriver.getPageSource();
+                    Result result = aiService.call(htmlContent, CommonPrompt.PDF_PROMPT);
+                    log.info("url: {}, parse result: {}", url, result);
+                    if (Objects.nonNull(result) && StringUtils.hasText(result.getResult())) {
+                        try {
+                            String text = result.getResult();
+                            String xpathExpression = String.format("//*[contains(text(), '%s')]", text);
+                            WebElement btn = driverWait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpathExpression)));
+                            btn.click();
+                        } catch (Exception e) {
+                            log.info("click url: {} error: {}", url, e.getMessage());
+                            failedUrl.add(url);
+                        }
+                    } else {
+                        log.info("url: {}, parse null", url);
                         failedUrl.add(url);
                     }
-                } else {
-                    log.info("url: {}, parse null", url);
-                    failedUrl.add(url);
                 }
-                chromeDriver.close();
             }
+        } catch (Exception e) {
+            log.error("parse_url error e: {}", e.getMessage());
         }
 
     }
@@ -109,7 +116,6 @@ public class BrowserService {
                 log.error("open url: {} error: {}", url, e.getMessage());
             }
         }
-        log.info("urlHandleMap: {}", urlHandleMap);
         return urlHandleMap;
     }
 

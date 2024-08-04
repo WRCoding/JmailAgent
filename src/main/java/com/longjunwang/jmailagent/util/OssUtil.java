@@ -2,13 +2,11 @@ package com.longjunwang.jmailagent.util;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.aliyun.oss.*;
-import com.aliyun.oss.common.auth.CredentialsProvider;
-import com.aliyun.oss.common.auth.DefaultCredentialProvider;
 import com.aliyun.oss.model.*;
 import com.longjunwang.jmailagent.browser.BrowserService;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +24,7 @@ public class OssUtil {
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             assert files != null;
-            Arrays.stream(files).forEach(OssUtil::upload);
+            Arrays.stream(files).forEach(OssUtil::uploadByFile);
         }
     }
 
@@ -34,23 +32,25 @@ public class OssUtil {
         List<String> filePaths = BrowserService.filePaths;
         for (String filePath : filePaths) {
             File file = new File(filePath);
-            OssUtil.upload(file);
+            OssUtil.uploadByFile(file);
         }
     }
-    public static PutObjectResult upload(File file){
-        OSS ossClient = getOssClient();
-        PutObjectResult result = null;
-        try {
-            // 创建PutObjectRequest对象。
-            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, file.getName(), file);
-            // 如果需要上传时设置存储类型和访问权限，请参考以下示例代码。
-            // ObjectMetadata metadata = new ObjectMetadata();
-            // metadata.setHeader(OSSHeaders.OSS_STORAGE_CLASS, StorageClass.Standard.toString());
-            // metadata.setObjectAcl(CannedAccessControlList.Private);
-            // putObjectRequest.setMetadata(metadata);
 
-            // 上传文件。
-            result = ossClient.putObject(putObjectRequest);
+    public static String uploadByFile(File file){
+        return baseUpload(new PutObjectRequest(bucketName, file.getName(), file), file.getName());
+    }
+
+    public static String uploadByInputStream(InputStream inputStream, String fileName){
+        return baseUpload(new PutObjectRequest(bucketName, fileName, inputStream), fileName);
+    }
+
+    public static String baseUpload(PutObjectRequest putObjectRequest, String objectName){
+        OSS ossClient = getInternalOssClient();
+        String result = null;
+        try {
+            ossClient.putObject(putObjectRequest);
+            result = generateTempUrl(objectName);
+            return result;
         } catch (OSSException oe) {
             System.out.println("Caught an OSSException, which means your request made it to OSS, "
                     + "but was rejected with an error response for some reason.");
@@ -67,17 +67,25 @@ public class OssUtil {
             if (ossClient != null) {
                 ossClient.shutdown();
             }
-            return result;
         }
+        return result;
     }
 
-    private static OSS getOssClient() {
+    private static OSS getInternalOssClient() {
+        return getOssClient(internalUrl);
+    }
+
+    private static OSS getExternalOssClient() {
+        return getOssClient(externalUrl);
+    }
+
+    private static OSS getOssClient(String externalUrl) {
         Config config = SpringUtil.getBean(Config.class);
-        return new OSSClientBuilder().build(config.getEndPoint(), config.getCredentialsProvider());
+        return new OSSClientBuilder().build(externalUrl, config.getCredentialsProvider());
     }
 
     public static String generateTempUrl(String objectName){
-        OSS ossClient = getOssClient();
+        OSS ossClient = getExternalOssClient();
         String tempUrl = null;
         try {
             URL signedUrl;
@@ -93,7 +101,6 @@ public class OssUtil {
             signedUrl = ossClient.generatePresignedUrl(request);
             tempUrl = transferUrl(signedUrl);
             // 打印签名URL。
-            System.out.println("signed url for getObject: " + tempUrl);
         } catch (OSSException oe) {
             System.out.println("Caught an OSSException, which means your request made it to OSS, "
                     + "but was rejected with an error response for some reason.");
@@ -116,7 +123,7 @@ public class OssUtil {
     }
 
     public static List<String> listObject(){
-        OSS ossClient = getOssClient();
+        OSS ossClient = getInternalOssClient();
         try {
             // 列举文件。如果不设置keyPrefix，则列举存储空间下的所有文件。如果设置keyPrefix，则列举包含指定前缀的文件。
             ObjectListing objectListing = ossClient.listObjects(bucketName);
@@ -142,11 +149,11 @@ public class OssUtil {
         return new ArrayList<>();
     }
 
-    public static void delete(String fileName) {
-        OSS ossClient = getOssClient();
+    public static void delete(String objectName) {
+        OSS ossClient = getInternalOssClient();
         try {
             // 删除文件或目录。如果要删除目录，目录必须为空。
-            ossClient.deleteObject(bucketName, fileName);
+            ossClient.deleteObject(bucketName, objectName);
         } catch (OSSException oe) {
             System.out.println("Caught an OSSException, which means your request made it to OSS, "
                     + "but was rejected with an error response for some reason.");

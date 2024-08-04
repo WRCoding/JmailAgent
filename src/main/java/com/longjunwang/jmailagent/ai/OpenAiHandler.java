@@ -31,12 +31,12 @@ public class OpenAiHandler extends AbsAIHandler{
     protected Result callModel(UserMessage userMessage, SystemMessage systemMessage) {
         try {
             return chatClient.prompt()
-                    .options(OpenAiChatOptions.builder().withModel(OpenAiApi.ChatModel.GPT_3_5_TURBO.getValue()).build())
+                    .options(OpenAiChatOptions.builder().withModel("gpt-4o-mini").build())
                     .messages(systemMessage, userMessage)
                     .call()
                     .entity(Result.class);
         } catch (Exception e) {
-            log.error("openai error", e);
+            log.error("openai error e: {}", e.getMessage());
             return null;
         }
     }

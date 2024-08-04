@@ -16,6 +16,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Date;
 import java.util.Objects;
 
@@ -46,11 +47,11 @@ public class CommonUtil {
     public static Date getDateBefore30Days() {
         // 获取当前日期
         LocalDate today = LocalDate.now();
-        // 计算前五天的日期
-        LocalDate fiveDaysAgo = today.minusDays(30);
+        LocalDate firstDayOfMonth = today.with(TemporalAdjusters.firstDayOfMonth());
+        LocalDate threeMonthBefore = firstDayOfMonth.minusMonths(3);
 
         // 将LocalDate转换为Date
-        ZonedDateTime zonedDateTime = fiveDaysAgo.atStartOfDay(ZoneId.systemDefault());
+        ZonedDateTime zonedDateTime = threeMonthBefore.atStartOfDay(ZoneId.systemDefault());
 
         return Date.from(zonedDateTime.toInstant());
     }

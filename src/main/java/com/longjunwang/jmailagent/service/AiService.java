@@ -26,9 +26,12 @@ public class AiService {
 
     public Result call(String userMsg, String sysMsg){
         for (AbsAIHandler aiHandler : aiHandlerList) {
+//            if (aiHandler.getClass().getSimpleName().equals("OpenAiHandler")){
+//                continue;
+//            }
             log.info("aiHandler: {}", aiHandler.getClass().getSimpleName());
             Result result = aiHandler.call(userMsg, sysMsg);
-            log.info("result: {}", result);
+//            log.info("result: {}", result);
             if (Objects.nonNull(result)){
                 return result;
             }

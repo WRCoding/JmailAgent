@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RateLimiter {
     // 使用 AtomicLong 保证线程安全
     private static final AtomicLong lastCallTimestamp = new AtomicLong(0);
-    private static final Long interval = 12_000L;
+    private static final Long interval = 24_000L;
 
     /**
      * 检查是否可以调用 API 并进行限流

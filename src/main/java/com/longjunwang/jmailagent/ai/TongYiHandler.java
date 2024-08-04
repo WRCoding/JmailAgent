@@ -31,7 +31,7 @@ public class TongYiHandler extends AbsAIHandler{
                     .call()
                     .entity(Result.class);
         } catch (Exception e) {
-            log.error("tongyi error", e);
+            log.error("tongyi error, e: {}", e.getMessage());
             return null;
         }
     }

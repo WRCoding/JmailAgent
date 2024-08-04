@@ -7,6 +7,7 @@ import com.longjunwang.jmailagent.util.OssUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,7 @@ public class InvoiceService {
     }
 
     public InvoiceInfo insert(InvoiceInfo invoiceInfo){
-        log.info("invoice: {}", invoiceInfo);
+        Assert.notNull(invoiceInfo, "invoiceInfo不能为空");
         invoiceMapper.insertBySelective(invoiceInfo);
         return invoiceInfo;
     }
@@ -58,5 +59,9 @@ public class InvoiceService {
     public List<InvoiceInfo> getRecycleList() {
         return invoiceMapper.selectAll().stream().filter(item -> "1".equals(item.getIsDelete()))
                 .collect(Collectors.toList());
+    }
+
+    public void handleAfter(){
+
     }
 }

@@ -1,11 +1,15 @@
 package com.longjunwang.jmailagent.service;
 
+import cn.hutool.core.date.DateUnit;
+import cn.hutool.core.date.DateUtil;
 import com.longjunwang.jmailagent.browser.BrowserService;
+import com.longjunwang.jmailagent.entity.AttachEvent;
 import com.longjunwang.jmailagent.entity.FailUrl;
 import com.longjunwang.jmailagent.entity.Setting;
 import com.longjunwang.jmailagent.mapper.FailUrlMapper;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.CommonUtil;
+import com.longjunwang.jmailagent.util.OssUtil;
 import com.longjunwang.jmailagent.util.Result;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -17,6 +21,7 @@ import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -51,6 +56,10 @@ public class MailService {
 
     @Resource
     private FailUrlMapper failUrlMapper;
+
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
+
     private Store store;
     private Folder inbox;
 
@@ -169,25 +178,25 @@ public class MailService {
             count++;
             lastEmailId = Math.max(lastEmailId, message.getMessageNumber());
             BodyPart attachment = getAttachment(message);
-            metaData(message);
+//            metaData(message);
             if (Objects.nonNull(attachment)) {
-                log.info("attachment size: {}", attachment.getSize());
-                parseAttachment(attachment);
+//                log.info("attachment size: {}", attachment.getSize());
+                parseAttachment(attachment, message.getMessageNumber());
             } else {
                 Result result = aiService.call(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 if (Objects.nonNull(result)){
                     urls.add(result.getResult());
-                    log.info("url: {}", result.getResult());
+//                    log.info("url: {}", result.getResult());
                 }
             }
         }
         if (count > 0) {
-            log.info("开始处理外部, url size: {}", urls.size());
+//            log.info("开始处理外部, url size: {}", urls.size());
             browserService.parse_url(urls);
             setting.setLastEmailId(lastEmailId);
             CommonUtil.writeBack(setting);
         }
-        cleanFolder(location);
+//        cleanFolder(location);
         log.info("执行完成, 处理数: {}, 耗时: {}", count, (System.currentTimeMillis() - start) / 1000);
 
     }
@@ -245,17 +254,12 @@ public class MailService {
         return fileName.substring(index);
     }
 
-    private void parseAttachment(BodyPart bodyPart) {
+    private void parseAttachment(BodyPart bodyPart, int mailId) {
         try {
             InputStream is = bodyPart.getInputStream();
-            File file = new File(location + File.separator + CommonUtil.decodeText(bodyPart.getFileName()));
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                byte[] buf = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = is.read(buf)) != -1) {
-                    fos.write(buf, 0, bytesRead);
-                }
-            }
+            //获取当前日期,格式YYYYMMDD
+            String fileName = DateUtil.today().replaceAll("-","") + mailId + ".pdf";
+            eventPublisher.publishEvent(new AttachEvent("attach", fileName, is));
         } catch (Exception e) {
             log.error("附件保存失败, e: {}", e.getMessage());
         }

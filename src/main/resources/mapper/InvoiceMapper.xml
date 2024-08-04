@@ -95,6 +95,7 @@
             </if>
             now(),now(),'0'
         </trim>
+        ON DUPLICATE KEY UPDATE update_time = now()
     </insert>
     <update id="softDelete">
         update invoice_info set is_delete = 1, update_time = now() where number = #{id};
