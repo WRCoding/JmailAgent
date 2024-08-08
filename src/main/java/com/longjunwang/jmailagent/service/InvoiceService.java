@@ -1,9 +1,11 @@
 package com.longjunwang.jmailagent.service;
 
 import cn.dev33.satoken.util.SaResult;
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.longjunwang.jmailagent.entity.InvoiceInfo;
 import com.longjunwang.jmailagent.mapper.InvoiceMapper;
 import com.longjunwang.jmailagent.util.OssUtil;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,14 +23,27 @@ public class InvoiceService {
     @Resource
     InvoiceMapper invoiceMapper;
 
+    private final static ConcurrentHashSet<String> NUMBER = new ConcurrentHashSet<>();
+
+    @PostConstruct
+    private void init(){
+        NUMBER.addAll(invoiceMapper.selectAll().stream().map(InvoiceInfo::getNumber).collect(Collectors.toSet()));
+    }
+
+
+    public boolean containNumber(String number){
+        return NUMBER.contains(number);
+    }
     public InvoiceInfo selectById(String id){
         return invoiceMapper.selectByNumberId(id);
     }
 
-    public InvoiceInfo insert(InvoiceInfo invoiceInfo){
+    public void insert(InvoiceInfo invoiceInfo){
         Assert.notNull(invoiceInfo, "invoiceInfo不能为空");
-        invoiceMapper.insertBySelective(invoiceInfo);
-        return invoiceInfo;
+        int effectRow = invoiceMapper.insertBySelective(invoiceInfo);
+        if (effectRow == 1){
+            NUMBER.add(invoiceInfo.getNumber());
+        }
     }
 
     public String tempUrl(String id) {

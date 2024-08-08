@@ -9,7 +9,9 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.util.Objects;
 
 @Component
@@ -28,29 +30,40 @@ public class AttachEventListener implements ApplicationListener<AttachEvent> {
     @Override
     public void onApplicationEvent(@NotNull AttachEvent event) {
         log.info(event.toString());
-        String url;
-        InvoiceInfo invoiceInfo;
+        InvoiceInfo invoiceInfo = null;
         try {
-            url = uploadOss(event);
-            invoiceInfo = uploadOcr(url, event.getFileName());
-            insertInfo(invoiceInfo);
+            String url = uploadOss(event);
+            invoiceInfo = uploadOcr(event, url);
+            handleInvoice(invoiceInfo);
         } catch (Exception e) {
             log.error("attachEvent 发生异常,回滚操作, e: {}", e.getMessage());
-            rollBack(event);
+            rollBack(invoiceInfo, event);
         }
     }
 
-    private void rollBack(AttachEvent event) {
-        log.info("rollBack: {}", event.getFileName());
-        OssUtil.delete(event.getFileName());
+    private void handleInvoice(InvoiceInfo invoiceInfo) {
+        if (invoiceService.containNumber(invoiceInfo.getNumber())){
+            OssUtil.delete(invoiceInfo.getFileName());
+        }else{
+            insertInfo(invoiceInfo);
+        }
+    }
+
+    private void rollBack(InvoiceInfo invoiceInfo, AttachEvent event) {
+        if (Objects.nonNull(invoiceInfo)) {
+            log.info("rollBack: {}", invoiceInfo);
+            invoiceService.hardDelete(invoiceInfo.getNumber());
+        }else {
+            OssUtil.delete(event.getFileName());
+        }
     }
 
     private void insertInfo(InvoiceInfo invoiceInfo) {
         invoiceService.insert(invoiceInfo);
     }
 
-    private InvoiceInfo uploadOcr(String url, String fileName) {
-        return TencentUtil.ocr_invoice(new TencentUtil.DTO(null, url, fileName));
+    private InvoiceInfo uploadOcr(AttachEvent event, String url) throws Exception {
+        return TencentUtil.ocr_invoice(new TencentUtil.DTO(event.getFile(), url, event.getFileName()));
     }
 
     private String uploadOss(AttachEvent event) {

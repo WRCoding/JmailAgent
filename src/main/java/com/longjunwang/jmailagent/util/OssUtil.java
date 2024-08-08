@@ -19,7 +19,8 @@ public class OssUtil {
 
     private static String internalUrl = "https://oss-cn-shenzhen-internal.aliyuncs.com";
     private static String externalUrl = "https://oss-cn-shenzhen.aliyuncs.com";
-    public static void uploadFolder(String folder){
+
+    public static void uploadFolder(String folder) {
         File file = new File(folder);
         if (file.isDirectory()) {
             File[] files = file.listFiles();
@@ -28,7 +29,7 @@ public class OssUtil {
         }
     }
 
-    public static void upload(){
+    public static void upload() {
         List<String> filePaths = BrowserService.filePaths;
         for (String filePath : filePaths) {
             File file = new File(filePath);
@@ -36,39 +37,19 @@ public class OssUtil {
         }
     }
 
-    public static String uploadByFile(File file){
+    public static String uploadByFile(File file) {
         return baseUpload(new PutObjectRequest(bucketName, file.getName(), file), file.getName());
     }
 
-    public static String uploadByInputStream(InputStream inputStream, String fileName){
+    public static String uploadByInputStream(InputStream inputStream, String fileName) {
         return baseUpload(new PutObjectRequest(bucketName, fileName, inputStream), fileName);
     }
 
-    public static String baseUpload(PutObjectRequest putObjectRequest, String objectName){
+    public static String baseUpload(PutObjectRequest putObjectRequest, String objectName) {
         OSS ossClient = getInternalOssClient();
-        String result = null;
-        try {
-            ossClient.putObject(putObjectRequest);
-            result = generateTempUrl(objectName);
-            return result;
-        } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
-        } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
-        } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
-        }
-        return result;
+        ossClient.putObject(putObjectRequest);
+        ossClient.shutdown();
+        return generateTempUrl(objectName);
     }
 
     private static OSS getInternalOssClient() {
@@ -84,7 +65,7 @@ public class OssUtil {
         return new OSSClientBuilder().build(externalUrl, config.getCredentialsProvider());
     }
 
-    public static String generateTempUrl(String objectName){
+    public static String generateTempUrl(String objectName) {
         OSS ossClient = getExternalOssClient();
         String tempUrl = null;
         try {
@@ -122,7 +103,7 @@ public class OssUtil {
         return urlString.replace(internalUrl, externalUrl);
     }
 
-    public static List<String> listObject(){
+    public static List<String> listObject() {
         OSS ossClient = getInternalOssClient();
         try {
             // 列举文件。如果不设置keyPrefix，则列举存储空间下的所有文件。如果设置keyPrefix，则列举包含指定前缀的文件。

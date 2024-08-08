@@ -39,27 +39,22 @@ public class TencentUtil {
         }
     }
 
-    public static InvoiceInfo ocr_invoice(DTO dto) {
+    public static InvoiceInfo ocr_invoice(DTO dto) throws Exception {
         if (Objects.isNull(dto.getFile()) && Objects.isNull(dto.getUrl())){
             throw new IllegalArgumentException("file和url不能同时为空");
         }
-        try {
-            OcrClient client = getOcrClient();
-            // 实例化一个请求对象,每个接口都会对应一个request对象
-            RecognizeGeneralInvoiceRequest req = new RecognizeGeneralInvoiceRequest();
-            if (Objects.nonNull(dto.getFile())){
-                req.setImageBase64(transfer2Base64(dto.getFile()));
-                req.setEnablePdf(true);
-            }else{
-                req.setImageUrl(dto.getUrl());
-            }
-            // 返回的resp是一个RecognizeGeneralInvoiceResponse的实例，与请求对象对应
-            RecognizeGeneralInvoiceResponse resp = client.RecognizeGeneralInvoice(req);
-            return extractData(resp, dto.getFileName());
-        } catch (Exception e) {
-            log.error("ocr_invoice  error: {}", e.getMessage());
-            return null;
+        OcrClient client = getOcrClient();
+        // 实例化一个请求对象,每个接口都会对应一个request对象
+        RecognizeGeneralInvoiceRequest req = new RecognizeGeneralInvoiceRequest();
+        if (Objects.nonNull(dto.getFile())){
+            req.setImageBase64(transfer2Base64(dto.getFile()));
+            req.setEnablePdf(true);
+        }else{
+            req.setImageUrl(dto.getUrl());
         }
+        // 返回的resp是一个RecognizeGeneralInvoiceResponse的实例，与请求对象对应
+        RecognizeGeneralInvoiceResponse resp = client.RecognizeGeneralInvoice(req);
+        return extractData(resp, dto.getFileName());
     }
 
     @NotNull
