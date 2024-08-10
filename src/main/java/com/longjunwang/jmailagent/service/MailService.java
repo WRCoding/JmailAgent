@@ -1,7 +1,5 @@
 package com.longjunwang.jmailagent.service;
 
-import cn.hutool.core.date.DateUnit;
-import cn.hutool.core.date.DateUtil;
 import com.longjunwang.jmailagent.browser.BrowserService;
 import com.longjunwang.jmailagent.entity.AttachEvent;
 import com.longjunwang.jmailagent.entity.FailUrl;
@@ -9,7 +7,6 @@ import com.longjunwang.jmailagent.entity.Setting;
 import com.longjunwang.jmailagent.mapper.FailUrlMapper;
 import com.longjunwang.jmailagent.util.CommonPrompt;
 import com.longjunwang.jmailagent.util.CommonUtil;
-import com.longjunwang.jmailagent.util.OssUtil;
 import com.longjunwang.jmailagent.util.Result;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -181,7 +178,7 @@ public class MailService {
 //            metaData(message);
             if (Objects.nonNull(attachment)) {
 //                log.info("attachment size: {}", attachment.getSize());
-                parseAttachment(attachment, message.getMessageNumber());
+                parseAttachment(attachment);
             } else {
                 Result result = aiService.call(extractHtmlContent(message), CommonPrompt.HTML_PROMPT);
                 if (Objects.nonNull(result)){
@@ -254,12 +251,10 @@ public class MailService {
         return fileName.substring(index);
     }
 
-    private void parseAttachment(BodyPart bodyPart, int mailId) {
+    private void parseAttachment(BodyPart bodyPart) {
         try {
             InputStream is = bodyPart.getInputStream();
-            //获取当前日期,格式YYYYMMDD
-            String fileName = DateUtil.today().replaceAll("-","") + mailId + ".pdf";
-            eventPublisher.publishEvent(new AttachEvent("attach", fileName, is));
+            eventPublisher.publishEvent(new AttachEvent("attach", is));
         } catch (Exception e) {
             log.error("附件保存失败, e: {}", e.getMessage());
         }

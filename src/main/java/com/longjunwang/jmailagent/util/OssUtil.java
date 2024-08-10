@@ -4,6 +4,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.aliyun.oss.*;
 import com.aliyun.oss.model.*;
 import com.longjunwang.jmailagent.browser.BrowserService;
+import com.longjunwang.jmailagent.entity.AttachEvent;
 
 import java.io.File;
 import java.io.InputStream;
@@ -20,29 +21,29 @@ public class OssUtil {
     private static String internalUrl = "https://oss-cn-shenzhen-internal.aliyuncs.com";
     private static String externalUrl = "https://oss-cn-shenzhen.aliyuncs.com";
 
-    public static void uploadFolder(String folder) {
-        File file = new File(folder);
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            assert files != null;
-            Arrays.stream(files).forEach(OssUtil::uploadByFile);
-        }
+//    public static void uploadFolder(String folder) {
+//        File file = new File(folder);
+//        if (file.isDirectory()) {
+//            File[] files = file.listFiles();
+//            assert files != null;
+//            Arrays.stream(files).forEach(OssUtil::uploadByFile);
+//        }
+//    }
+
+//    public static void upload() {
+//        List<String> filePaths = BrowserService.filePaths;
+//        for (String filePath : filePaths) {
+//            File file = new File(filePath);
+//            OssUtil.uploadByFile(file);
+//        }
+//    }
+
+    public static String uploadByFile(AttachEvent event) {
+        return baseUpload(new PutObjectRequest(bucketName, event.getFileName(), event.getFile()), event.getFileName());
     }
 
-    public static void upload() {
-        List<String> filePaths = BrowserService.filePaths;
-        for (String filePath : filePaths) {
-            File file = new File(filePath);
-            OssUtil.uploadByFile(file);
-        }
-    }
-
-    public static String uploadByFile(File file) {
-        return baseUpload(new PutObjectRequest(bucketName, file.getName(), file), file.getName());
-    }
-
-    public static String uploadByInputStream(InputStream inputStream, String fileName) {
-        return baseUpload(new PutObjectRequest(bucketName, fileName, inputStream), fileName);
+    public static String uploadByInputStream(AttachEvent event) {
+        return baseUpload(new PutObjectRequest(bucketName, event.getFileName(), event.getInputStream()), event.getFileName());
     }
 
     public static String baseUpload(PutObjectRequest putObjectRequest, String objectName) {
@@ -71,7 +72,7 @@ public class OssUtil {
         try {
             URL signedUrl;
             // 指定生成的签名URL过期时间，单位为毫秒。本示例以设置过期时间为1小时为例。
-            Date expiration = new Date(new Date().getTime() + 3600 * 1000L);
+            Date expiration = new Date(new Date().getTime() + 600 * 1000L);
 
             // 生成签名URL。
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.GET);

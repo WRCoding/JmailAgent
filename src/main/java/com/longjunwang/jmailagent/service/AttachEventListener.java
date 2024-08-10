@@ -67,6 +67,6 @@ public class AttachEventListener implements ApplicationListener<AttachEvent> {
     }
 
     private String uploadOss(AttachEvent event) {
-        return Objects.nonNull(event.getFile()) ? OssUtil.uploadByFile(event.getFile()) : OssUtil.uploadByInputStream(event.getInputStream(), event.getFileName());
+        return Objects.nonNull(event.getFile()) ? OssUtil.uploadByFile(event) : OssUtil.uploadByInputStream(event);
     }
 }

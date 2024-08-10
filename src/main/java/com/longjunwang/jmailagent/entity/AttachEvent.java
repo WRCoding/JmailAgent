@@ -1,6 +1,6 @@
 package com.longjunwang.jmailagent.entity;
 
-import lombok.Data;
+import cn.hutool.core.util.IdUtil;
 import org.springframework.context.ApplicationEvent;
 
 import java.io.File;
@@ -11,17 +11,18 @@ public class AttachEvent extends ApplicationEvent {
     private InputStream inputStream;
     private File file;
 
-    public AttachEvent(Object source, String fileName, InputStream inputStream) {
-        this(source, fileName, inputStream, null);
+    private static final String SUFFIX = ".pdf";
+    public AttachEvent(Object source, InputStream inputStream) {
+        this(source, inputStream, null);
     }
 
     public AttachEvent(Object source, File file) {
-        this(source, file.getName(), null, file);
+        this(source, null, file);
     }
 
-    public AttachEvent(Object source, String fileName, InputStream inputStream, File file) {
+    public AttachEvent(Object source, InputStream inputStream, File file) {
         super(source);
-        this.fileName = fileName;
+        this.fileName = IdUtil.objectId() + SUFFIX;
         this.inputStream = inputStream;
         this.file = file;
     }
